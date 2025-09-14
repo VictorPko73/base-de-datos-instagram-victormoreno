@@ -8,13 +8,10 @@ db = SQLAlchemy()
 
 class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
-    first_name: Mapped[str] = mapped_column(
-        String(40), unique=True, nullable=False)
-    last_name: Mapped[str] = mapped_column(
-        String(40), unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(
-        String(120), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(40), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(40), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(40), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
     # RELACIONES ENTRE TABLAS
     followers = db.relationship(
@@ -29,6 +26,17 @@ class User(db.Model):
         backref='follower',
         lazy='True'
     )
+    comments = db.relationship(
+        'Comment',
+        backref='user',
+        lazy='True'
+    )
+    posts = db.relationship(
+        'Post',
+        backref='user',
+        lazy='True'
+    )
+    
 
     def serialize(self):
         return {
@@ -39,6 +47,7 @@ class User(db.Model):
 
 
 class Follower(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_from_id: Mapped[int] = mapped_column(
         db.ForeignKey('user.id'), nullable=False)
     user_to_id: Mapped[int] = mapped_column(
@@ -48,4 +57,55 @@ class Follower(db.Model):
         return {
             "user_from_id": self.user_from_id,
             "user_to_id": self.user_to_id,
+        }
+    
+
+class Post(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
+    content: Mapped[str] = mapped_column(String(500), nullable=False)
+    user_id: Mapped[int] = mapped_column(db.ForeignKey('user.id'), nullable=False)
+    
+    # RELACIONES
+    comments = db.relationship(
+        'Comment',
+        backref='post',
+        lazy='True'
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "content": self.content,
+            "user_id": self.user_id
+        }
+
+
+class Comment(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    content: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[int] = mapped_column(db.ForeignKey('user.id'), nullable=False)
+    post_id: Mapped[int] = mapped_column(db.ForeignKey('post.id'), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "content": self.content,
+            "user_id": self.user_id,
+            "post_id": self.post_id
+        }
+
+class Media(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    type: Mapped[str] = mapped_column(String(255), nullable=False)
+    url: Mapped[str] = mapped_column(String(255), nullable=False)
+    post_id: Mapped[int] = mapped_column(db.ForeignKey('post.id'), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "url": self.url,
+            "post_id": self.post_id
         }
